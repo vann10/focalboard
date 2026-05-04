@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
 jobs:
   sonarcloud:
     runs-on: ubuntu-latest
@@ -10,6 +11,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      # Go coverage
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Run Go tests with coverage
+        working-directory: ./server
+        run: |
+          go test ./... -coverprofile=coverage.out -covermode=atomic
+        continue-on-error: true
+
+      # TypeScript/JavaScript coverage
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and test frontend
+        working-directory: ./webapp
+        run: |
+          npm ci
+          npx jest --coverage --coverageReporters=lcov --passWithNoTests
+        continue-on-error: true
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
